@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
-import { Shield, Database, LayoutDashboard, Sparkles, Brain, FileText } from "lucide-react";
+import { Shield, Database, LayoutDashboard, Sparkles, Brain, FileText, Radar, GitBranch, BookOpen } from "lucide-react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -54,6 +54,18 @@ export default function RootLayout({
                   <Link href="/learning" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                     <Brain className="w-4 h-4 mr-2 text-violet-500" />
                     Learning
+                  </Link>
+                  <Link href="/intelligence" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                    <Radar className="w-4 h-4 mr-2 text-rose-500" />
+                    Intelligence
+                  </Link>
+                  <Link href="/provenance" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                    <GitBranch className="w-4 h-4 mr-2 text-emerald-500" />
+                    Provenance
+                  </Link>
+                  <Link href="/runbooks" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                    <BookOpen className="w-4 h-4 mr-2 text-amber-500" />
+                    Runbooks
                   </Link>
                   <Link href="/reports" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                     <FileText className="w-4 h-4 mr-2 text-amber-500" />

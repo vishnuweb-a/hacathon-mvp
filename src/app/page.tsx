@@ -14,6 +14,9 @@ import {
   BookOpen,
   Terminal,
   Zap,
+  ChevronRight,
+  GitBranch,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -178,6 +181,74 @@ export default function SecurityCommandCenter() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* THREAT INTELLIGENCE PROMO */}
+        <div className="bg-gradient-to-r from-rose-500/10 via-violet-500/10 to-cyan-500/10 border border-rose-500/20 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-rose-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="p-3 rounded-xl bg-zinc-950/50 border border-rose-500/20 text-rose-400">
+              <Zap className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Proactive Threat Intelligence</h2>
+              <p className="text-sm text-zinc-400 max-w-xl">
+                Analyze patterns across incidents, postmortems, and learning events to predict emerging threats and visualize your security posture.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/intelligence"
+            className="shrink-0 relative z-10 bg-gradient-to-r from-rose-500 to-violet-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:from-rose-400 hover:to-violet-500 shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 transition-all flex items-center gap-2 group"
+          >
+            Launch Intelligence Center
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </a>
+        </div>
+
+        {/* PROVENANCE EXPLORER PROMO */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-zinc-950/50 border border-emerald-500/20 text-emerald-400">
+              <GitBranch className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Memory Provenance Explorer</h2>
+              <p className="text-sm text-zinc-400 max-w-xl">
+                Trace every recommendation back to its historical evidence. See the exact memories and past incidents that informed SentinelMind's decisions.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/provenance"
+            className="shrink-0 bg-zinc-800 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-zinc-700 border border-zinc-700 transition-all flex items-center gap-2"
+          >
+            Explore Reasoning Chain
+            <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+
+        {/* ADAPTIVE RUNBOOK PROMO */}
+        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="p-3 rounded-xl bg-zinc-950/50 border border-amber-500/20 text-amber-400">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Adaptive Runbook Intelligence</h2>
+              <p className="text-sm text-zinc-400 max-w-xl">
+                Self-evolving security runbooks that automatically improve by learning from historical incidents, identifying the most effective remediation steps over time.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/runbooks"
+            className="shrink-0 relative z-10 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:from-amber-400 hover:to-orange-500 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center gap-2 group"
+          >
+            Open Runbooks
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </a>
         </div>
 
         {/* MAIN GRID: 4 Columns */}

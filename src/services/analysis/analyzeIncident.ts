@@ -49,5 +49,36 @@ export async function analyzeIncident(incidentId: string): Promise<IncidentAnaly
   const analysis = await saveAnalysis(incidentId, geminiOutput);
   console.log(`[Analysis] Saved analysis with ID: ${analysis.id}`);
 
+  // Step 6: Log provenance
+  try {
+    const provenanceEntries = [
+      {
+        source_type: "incident",
+        source_id: incidentId,
+        target_type: "analysis",
+        target_id: analysis.id,
+        relevance: 1.0,
+        context: "Analyzed incident",
+      },
+    ];
+
+    for (const mem of memories) {
+      provenanceEntries.push({
+        source_type: "memory",
+        source_id: mem.id,
+        target_type: "analysis",
+        target_id: analysis.id,
+        relevance: mem.relevance_score || 0,
+        context: mem.metadata?.title || mem.text?.substring(0, 50),
+      });
+    }
+
+    const { logProvenance } = await import("@/services/provenance/resolveSources");
+    await logProvenance(provenanceEntries);
+    console.log(`[Analysis] Logged ${provenanceEntries.length} provenance entries.`);
+  } catch (err) {
+    console.warn("[Analysis] Failed to log provenance:", err);
+  }
+
   return analysis;
 }
