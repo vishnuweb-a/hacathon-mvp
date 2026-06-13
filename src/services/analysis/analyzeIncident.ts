@@ -28,7 +28,7 @@ export async function analyzeIncident(incidentId: string): Promise<IncidentAnaly
 
   // Step 2: Recall similar memories from Hindsight
   const searchQuery = `${incident.title} ${incident.description}`;
-  let memories;
+  let memories: any[] = [];
   try {
     memories = await searchIncidentMemories(searchQuery);
     console.log(`[Analysis] Found ${memories.length} similar memories`);

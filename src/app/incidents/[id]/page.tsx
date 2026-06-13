@@ -1,301 +1,491 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, use, useRef } from "react";
+import {
+  FileText,
+  CheckCircle2,
+  Clock,
+  Activity,
+  DatabaseZap,
+  Sparkles,
+  Loader2,
+  ArrowLeft,
+  Info,
+} from "lucide-react";
+import type { Incident } from "@/types/incident";
+import type { Postmortem } from "@/types/postmortem";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-interface Incident {
-  id: string;
-  title: string;
-  description: string;
-  severity: string;
-  status: string;
-  source?: string | null;
-  created_at: string;
-}
-
-interface Analysis {
-  id: string;
-  incident_id: string;
-  root_cause: string;
-  confidence: number;
-  recommended_actions: string[];
-  estimated_resolution_time: string;
-  recommended_runbook: string;
-  analysis_summary: string;
-  created_at: string;
-}
-
-export default function IncidentDetailPage({
+export default function IncidentDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [incidentId, setIncidentId] = useState<string | null>(null);
+  const { id } = use(params);
+
   const [incident, setIncident] = useState<Incident | null>(null);
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [postmortem, setPostmortem] = useState<Postmortem | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [error, setError] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [submittingPm, setSubmittingPm] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [pmSuccess, setPmSuccess] = useState<{
+    memoryStored: boolean;
+    threatType?: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
-  // Unwrap the params promise
-  useEffect(() => {
-    params.then((p) => setIncidentId(p.id));
-  }, [params]);
+  // Form refs for auto-fill
+  const rootCauseRef = useRef<HTMLTextAreaElement>(null);
+  const resolutionRef = useRef<HTMLTextAreaElement>(null);
+  const lessonsRef = useRef<HTMLTextAreaElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
 
-  // Fetch incident + existing analysis
-  const fetchData = useCallback(async () => {
-    if (!incidentId) return;
-    setLoading(true);
+  const fetchIncidentData = async () => {
     try {
-      // Fetch incident
-      const incRes = await fetch(`/api/incidents/${incidentId}`);
-      const incData = await incRes.json();
-      if (!incData.success) throw new Error(incData.error);
-      setIncident(incData.incident);
-
-      // Try to fetch existing analysis
-      const anaRes = await fetch(`/api/analyze/${incidentId}`);
-      const anaData = await anaRes.json();
-      if (anaData.success) {
-        setAnalysis(anaData.analysis);
+      // 1. Fetch incident
+      const res = await fetch("/api/incidents");
+      const data = await res.json();
+      const found = data.incidents?.find((i: Incident) => i.id === id);
+      if (found) {
+        setIncident(found);
+      } else {
+        setError("Incident not found.");
       }
-    } catch (err: any) {
-      setError(err.message);
+
+      // 2. Fetch postmortem (if exists)
+      const pmRes = await fetch(`/api/incidents/${id}/postmortem`);
+      if (pmRes.ok) {
+        const pmData = await pmRes.json();
+        if (pmData.success && pmData.postmortem) {
+          setPostmortem(pmData.postmortem);
+        }
+      }
+    } catch {
+      setError("Failed to load incident details.");
     } finally {
       setLoading(false);
     }
-  }, [incidentId]);
+  };
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchIncidentData();
+  }, [id]);
 
-  // Trigger AI analysis
-  const handleAnalyze = async () => {
-    if (!incidentId) return;
-    setAnalyzing(true);
-    setError("");
+  const handleStatusUpdate = (
+    newStatus: "open" | "investigating" | "resolved"
+  ) => {
+    setUpdatingStatus(true);
+    setTimeout(() => {
+      setIncident((prev) => (prev ? { ...prev, status: newStatus } : null));
+      setUpdatingStatus(false);
+    }, 500);
+  };
+
+  // ---- AI Auto-Generate Postmortem ----
+  const handleAutoGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+
     try {
-      const res = await fetch("/api/analyze", {
+      const res = await fetch(`/api/incidents/${id}/auto-postmortem`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ incidentId }),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      setAnalysis(data.analysis);
-    } catch (err: any) {
-      setError(err.message);
+      if (!data.success) throw new Error(data.error || "Generation failed");
+
+      const pm = data.postmortem;
+
+      // Auto-fill the form fields
+      if (rootCauseRef.current) rootCauseRef.current.value = pm.root_cause;
+      if (resolutionRef.current) resolutionRef.current.value = pm.resolution;
+      if (lessonsRef.current) lessonsRef.current.value = pm.lessons_learned;
+      if (timeRef.current)
+        timeRef.current.value = String(pm.resolution_time_minutes);
+
+      // Flash animation on the form
+      const form = document.getElementById("postmortem-form");
+      if (form) {
+        form.classList.add("ring-2", "ring-violet-500/50");
+        setTimeout(
+          () => form.classList.remove("ring-2", "ring-violet-500/50"),
+          2000
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to auto-generate"
+      );
     } finally {
-      setAnalyzing(false);
+      setGenerating(false);
     }
   };
 
-  // --- Helpers ---
-  const severityColor = (severity: string) => {
-    switch (severity) {
-      case "critical": return "bg-red-500/10 text-red-400 border-red-500/20";
-      case "high": return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-      case "medium": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-      case "low": return "bg-green-500/10 text-green-400 border-green-500/20";
-      default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  const handlePostmortemSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+    setSubmittingPm(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const payload = {
+      root_cause: formData.get("root_cause") as string,
+      resolution: formData.get("resolution") as string,
+      lessons_learned: formData.get("lessons_learned") as string,
+      resolution_time_minutes: parseInt(
+        formData.get("resolution_time_minutes") as string,
+        10
+      ),
+    };
+
+    try {
+      const res = await fetch(`/api/incidents/${id}/postmortem`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!data.success)
+        throw new Error(data.error || "Failed to submit postmortem");
+
+      setPostmortem(data.postmortem);
+      if (data.learning) {
+        setPmSuccess({
+          memoryStored: data.learning.memoryStored,
+          threatType: data.learning.threatType,
+        });
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred submitting the postmortem"
+      );
+    } finally {
+      setSubmittingPm(false);
     }
   };
 
-  const confidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
-    if (confidence >= 60) return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
-    return "bg-orange-500/10 text-orange-400 border-orange-500/30";
-  };
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "open": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-      case "investigating": return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-      case "resolved": return "bg-green-500/10 text-green-400 border-green-500/20";
-      default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    }
-  };
-
-  // --- Loading State ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-          <p className="text-gray-400 text-lg">Loading incident...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   if (!incident) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Incident Not Found</h1>
-          <p className="text-gray-400">{error || "The requested incident does not exist."}</p>
-        </div>
+      <div className="p-8 text-center text-red-500">
+        {error || "Incident not found"}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
-      {/* Header */}
-      <header className="border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
-              ← Back
-            </a>
-            <span className="text-gray-600">|</span>
-            <h1 className="text-lg font-semibold text-white">Incident Details</h1>
+    <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 sm:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Back Link */}
+        <Link
+          href="/incidents"
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Incidents
+        </Link>
+
+        {/* ─── Two Column Layout ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          
+          {/* LEFT COLUMN: INCIDENT DETAILS (col-span-2) */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
+                    {incident.title}
+                  </h1>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">
+                    ID: {incident.id}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-medium border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                    {incident.severity}
+                  </span>
+                  <span
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs font-medium capitalize",
+                      incident.status === "resolved"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400"
+                        : incident.status === "investigating"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400"
+                          : "bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400"
+                    )}
+                  >
+                    {incident.status}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                  Description
+                </h3>
+                <p className="text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-950 p-4 rounded-lg border border-zinc-100 dark:border-zinc-800 leading-relaxed">
+                  {incident.description}
+                </p>
+              </div>
+
+              {/* Status Actions */}
+              <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
+                  Update Status
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => handleStatusUpdate("investigating")}
+                    disabled={
+                      incident.status === "investigating" || updatingStatus
+                    }
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                  >
+                    <Activity className="w-4 h-4 text-blue-500" />
+                    Investigating
+                  </button>
+                  <button
+                    onClick={() => handleStatusUpdate("resolved")}
+                    disabled={incident.status === "resolved" || updatingStatus}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Mark as Resolved
+                  </button>
+                </div>
+              </div>
+
+              {/* Generate Report Button */}
+              <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                <button
+                  onClick={async () => {
+                    setGeneratingReport(true);
+                    try {
+                      const res = await fetch("/api/reports/generate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ incidentId: id }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        window.location.href = "/reports";
+                      } else {
+                        setError(data.error || "Failed to generate report");
+                      }
+                    } catch {
+                      setError("Failed to generate report");
+                    } finally {
+                      setGeneratingReport(false);
+                    }
+                  }}
+                  disabled={generatingReport}
+                  className="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 shadow-sm disabled:opacity-60 transition-all"
+                >
+                  {generatingReport ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  {generatingReport ? "Generating Report..." : "Generate Executive Report"}
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColor(incident.status)}`}>
-              {incident.status.toUpperCase()}
-            </span>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${severityColor(incident.severity)}`}>
-              {incident.severity.toUpperCase()}
-            </span>
+
+          {/* RIGHT COLUMN: SOLUTION / POSTMORTEM SIDE PANEL (col-span-1) */}
+          <div className="lg:col-span-1 sticky top-6">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col h-full max-h-[calc(100vh-3rem)]">
+              
+              {/* Panel Header */}
+              <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-500" />
+                  <h2 className="text-base font-semibold text-zinc-900 dark:text-white">
+                    Solution & Postmortem
+                  </h2>
+                </div>
+                {/* Auto-Generate Button */}
+                {incident.status === "resolved" && !postmortem && (
+                  <button
+                    onClick={handleAutoGenerate}
+                    disabled={generating}
+                    className="w-full inline-flex justify-center items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:from-violet-700 hover:to-fuchsia-700 shadow-sm disabled:opacity-60 transition-all"
+                  >
+                    {generating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    {generating
+                      ? "Generating with AI..."
+                      : "Auto-Generate via AI"}
+                  </button>
+                )}
+              </div>
+
+              {/* Panel Content Scroll Area */}
+              <div className="overflow-y-auto flex-1 custom-scrollbar">
+                
+                {/* State 1: Not Resolved */}
+                {incident.status !== "resolved" && !postmortem && (
+                  <div className="p-8 text-center text-zinc-500 dark:text-zinc-400 flex flex-col items-center">
+                    <Info className="w-10 h-10 mb-3 text-zinc-300 dark:text-zinc-600" />
+                    <p className="text-sm">
+                      Incident is currently active. Mark it as resolved to add a solution.
+                    </p>
+                  </div>
+                )}
+
+                {/* State 2: Error in Generation or Fetching */}
+                {error && (
+                  <div className="m-5 p-3 text-sm text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
+                    {error}
+                  </div>
+                )}
+
+                {/* State 3: Learning Success Message */}
+                {pmSuccess && (
+                  <div className="m-5 p-4 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 flex items-start gap-3">
+                    <DatabaseZap className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-violet-900 dark:text-violet-300">
+                        AI Knowledge Extracted
+                      </h4>
+                      <p className="text-xs text-violet-700 dark:text-violet-400 mt-1">
+                        Categorized as <strong>{pmSuccess.threatType}</strong>. Saved to memory.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* State 4: Form (Resolved but no postmortem yet) */}
+                {incident.status === "resolved" && !postmortem && (
+                  <form
+                    id="postmortem-form"
+                    onSubmit={handlePostmortemSubmit}
+                    className="p-5 space-y-4 transition-all duration-500"
+                  >
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                        Root Cause
+                      </label>
+                      <textarea
+                        ref={rootCauseRef}
+                        name="root_cause"
+                        required
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                        Resolution
+                      </label>
+                      <textarea
+                        ref={resolutionRef}
+                        name="resolution"
+                        required
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                        Lessons Learned
+                      </label>
+                      <textarea
+                        ref={lessonsRef}
+                        name="lessons_learned"
+                        required
+                        rows={3}
+                        className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+                        Time (mins)
+                      </label>
+                      <input
+                        ref={timeRef}
+                        type="number"
+                        name="resolution_time_minutes"
+                        required
+                        min={0}
+                        className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-zinc-900 dark:text-white transition-all"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={submittingPm}
+                        className="w-full px-4 py-2.5 text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white dark:text-black rounded-lg transition-colors disabled:opacity-50 flex justify-center items-center gap-2 shadow-sm"
+                      >
+                        {submittingPm && (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        )}
+                        {submittingPm ? "Saving..." : "Save & Learn"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* State 5: Permanent Read-Only Solution */}
+                {postmortem && (
+                  <div className="p-5 space-y-6">
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                        Root Cause
+                      </h3>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                        {postmortem.root_cause}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                        Resolution
+                      </h3>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                        {postmortem.resolution}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+                        Lessons Learned
+                      </h3>
+                      <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                        {postmortem.lessons_learned}
+                      </p>
+                    </div>
+                    <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      <Clock className="w-4 h-4" />
+                      Resolution Time: {postmortem.resolution_time_minutes}{" "}
+                      minutes
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {/* Incident Card */}
-        <section className="mb-8">
-          <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-3">{incident.title}</h2>
-            <p className="text-gray-400 text-lg leading-relaxed mb-6">{incident.description}</p>
-            <div className="flex flex-wrap gap-6 text-sm text-gray-500">
-              <span>Source: <strong className="text-gray-300">{incident.source || "N/A"}</strong></span>
-              <span>Created: <strong className="text-gray-300">{new Date(incident.created_at).toLocaleString()}</strong></span>
-              <span>ID: <strong className="text-gray-300 font-mono text-xs">{incident.id}</strong></span>
-            </div>
-          </div>
-        </section>
-
-        {/* Analyze Button */}
-        {!analysis && !analyzing && (
-          <section className="mb-8">
-            <button
-              onClick={handleAnalyze}
-              id="analyze-incident-btn"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-4 px-8 rounded-xl text-lg transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-[0.98] flex items-center justify-center gap-3"
-            >
-              <span className="text-2xl">🔍</span>
-              Analyze Incident with AI
-            </button>
-          </section>
-        )}
-
-        {/* Analyzing Animation */}
-        {analyzing && (
-          <section className="mb-8">
-            <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-indigo-500/20 rounded-2xl p-12 text-center">
-              <div className="inline-flex items-center gap-4">
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20" />
-                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin" />
-                  <div className="absolute inset-2 rounded-full border-4 border-transparent border-t-purple-500 animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-                </div>
-                <div className="text-left">
-                  <p className="text-xl font-semibold text-white">Analyzing with Gemini AI...</p>
-                  <p className="text-gray-400 text-sm mt-1">Recalling memories • Building context • Generating analysis</p>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Error */}
-        {error && !loading && (
-          <section className="mb-8">
-            <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 text-red-400">
-              <strong>Error:</strong> {error}
-            </div>
-          </section>
-        )}
-
-        {/* Analysis Results */}
-        {analysis && (
-          <section className="space-y-6 animate-in fade-in duration-500">
-            {/* AI Analysis Header */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <span>🤖</span> AI Analysis
-              </h2>
-              <button
-                onClick={handleAnalyze}
-                disabled={analyzing}
-                className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-50"
-              >
-                ↻ Re-analyze
-              </button>
-            </div>
-
-            {/* Root Cause + Confidence */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-6">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Predicted Root Cause</h3>
-                <p className="text-2xl font-bold text-white">{analysis.root_cause}</p>
-              </div>
-              <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Confidence</h3>
-                <div className={`text-4xl font-black ${analysis.confidence >= 80 ? "text-emerald-400" : analysis.confidence >= 60 ? "text-yellow-400" : "text-orange-400"}`}>
-                  {analysis.confidence}%
-                </div>
-                <span className={`mt-2 px-3 py-1 rounded-full text-xs font-medium border ${confidenceColor(analysis.confidence)}`}>
-                  {analysis.confidence >= 80 ? "High Confidence" : analysis.confidence >= 60 ? "Moderate" : "Low Confidence"}
-                </span>
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-6">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Historical Context Summary</h3>
-              <p className="text-gray-300 leading-relaxed text-lg">{analysis.analysis_summary}</p>
-            </div>
-
-            {/* Recommended Actions */}
-            <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-6">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Recommended Actions</h3>
-              <ol className="space-y-3">
-                {(analysis.recommended_actions || []).map((action: string, i: number) => (
-                  <li key={i} className="flex items-start gap-4">
-                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-sm font-bold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <span className="text-gray-300 pt-0.5">{action}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {/* Resolution Time + Runbook */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-6">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Estimated Resolution Time</h3>
-                <p className="text-2xl font-bold text-white flex items-center gap-2">
-                  <span>⏱️</span> {analysis.estimated_resolution_time}
-                </p>
-              </div>
-              <div className="bg-gradient-to-br from-[#12121a] to-[#0f0f18] border border-white/5 rounded-2xl p-6">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Recommended Runbook</h3>
-                <p className="text-2xl font-bold text-white flex items-center gap-2">
-                  <span>📋</span> {analysis.recommended_runbook}
-                </p>
-              </div>
-            </div>
-
-            {/* Timestamp */}
-            <p className="text-xs text-gray-600 text-right">
-              Analysis generated: {new Date(analysis.created_at).toLocaleString()}
-            </p>
-          </section>
-        )}
-      </main>
+      </div>
     </div>
   );
 }

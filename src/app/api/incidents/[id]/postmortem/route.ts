@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPostmortemSchema } from "@/schemas/postmortem.schema";
-import { createPostmortem } from "@/services/postmortems";
-import { storeIncidentMemory } from "@/services/memory/storeMemory";
+import { createPostmortem, getPostmortemByIncidentId } from "@/services/postmortems";
+import { runLearningPipeline } from "@/services/learning/learningPipeline";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-// POST /api/incidents/:id/postmortem - Submit a postmortem
+// GET /api/incidents/:id/postmortem - Fetch an existing postmortem
+export async function GET(request: NextRequest, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+    const postmortem = await getPostmortemByIncidentId(id);
+    
+    if (!postmortem) {
+      return NextResponse.json({ success: true, postmortem: null }, { status: 200 });
+    }
+    
+    return NextResponse.json({ success: true, postmortem }, { status: 200 });
+  } catch (error) {
+    console.error("[GET /api/incidents/:id/postmortem] Error:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+// POST /api/incidents/:id/postmortem - Submit a postmortem & trigger learning
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
@@ -42,18 +60,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const postmortem = await createPostmortem(payload);
 
-    // Automatically trigger memory generation in HindSign
-    let memoryId = null;
+    // Automatically trigger the Continuous Learning Pipeline
+    let learningResult = null;
     try {
-      const memory = await storeIncidentMemory(id);
-      memoryId = memory.id;
-    } catch (memError) {
-      console.error("[POST /api/incidents/:id/postmortem] Failed to store memory:", memError);
-      // We don't fail the whole request if memory storage fails, but we log it
+      learningResult = await runLearningPipeline(id);
+      console.log(`[Postmortem] Learning pipeline completed: ${learningResult.threatType}`);
+    } catch (learningError) {
+      console.error("[Postmortem] Learning pipeline failed:", learningError);
+      // We don't fail the whole request if learning fails
     }
 
     return NextResponse.json(
-      { success: true, postmortem, memoryStored: !!memoryId, memoryId },
+      {
+        success: true,
+        postmortem,
+        learning: learningResult
+          ? {
+              memoryStored: learningResult.success,
+              memoryId: learningResult.memoryId,
+              threatType: learningResult.threatType,
+            }
+          : null,
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -63,4 +91,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }
+
 
