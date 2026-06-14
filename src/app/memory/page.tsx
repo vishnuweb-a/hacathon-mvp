@@ -1,113 +1,188 @@
 "use client";
 
-import { useState } from "react";
-import type { SearchResult } from "@/lib/hindsight";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Search, Brain, Filter, ChevronRight, RefreshCw, X } from "lucide-react";
+
+interface Memory {
+  id: string;
+  original_incident_id: string;
+  threat_category: string;
+  hindsight_reasoning: string;
+  ai_confidence_score: number;
+  recommendations: string[];
+  created_at: string;
+}
 
 export default function MemoryExplorer() {
-  const [query, setQuery] = useState("");
-  const [memories, setMemories] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  useEffect(() => {
+    fetchMemories();
+  }, []);
 
+  const fetchMemories = async () => {
     setLoading(true);
-    setError("");
-
     try {
-      const res = await fetch("/api/memory/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
-
+      const res = await fetch("/api/memories");
       const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || "Failed to search memories");
+      if (data.success) {
+        setMemories(data.memories);
       }
-
-      setMemories(data.memories);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  const categories = Array.from(new Set(memories.map((m) => m.threat_category))).filter(Boolean);
+
+  const filteredMemories = memories.filter((m) => {
+    const matchesSearch =
+      m.threat_category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.hindsight_reasoning?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory ? m.threat_category === selectedCategory : true;
+    return matchesSearch && matchesCategory;
+  });
+
   return (
-    <div className="container mx-auto p-8 max-w-5xl font-sans">
-      <h1 className="text-3xl font-bold mb-8">🧠 Memory Explorer</h1>
-
-      <form onSubmit={handleSearch} className="mb-8 flex gap-4">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search past incidents (e.g., 'multiple failed logins', 'phishing')"
-          className="flex-1 p-4 border rounded-lg shadow-sm text-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
-          disabled={loading}
-        >
-          {loading ? "Searching..." : "Recall"}
-        </button>
-      </form>
-
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-8">
-          Error: {error}
+    <div className="min-h-screen p-8 sm:p-10" style={{ backgroundColor: "#0B1220" }}>
+      <div className="max-w-[1000px] mx-auto space-y-12">
+        
+        {/* HEADER */}
+        <div className="text-center max-w-2xl mx-auto">
+          <h1 className="text-[32px] font-bold tracking-tight" style={{ color: "#F3F6FB" }}>
+            Hindsight Memory Explorer
+          </h1>
+          <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "#64748B" }}>
+            Browse and query the organizational knowledge graph. SentinelMind learns from every resolved incident and postmortem, distilling them into actionable memories.
+          </p>
         </div>
-      )}
 
-      <div className="space-y-6">
-        {memories.length === 0 && !loading && !error && query && (
-          <p className="text-gray-500 text-center py-8">No relevant memories found.</p>
-        )}
+        {/* SEARCH & FILTERS */}
+        <div className="space-y-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+              <Search className="h-5 w-5" style={{ color: "#64748B" }} />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-14 pr-5 py-5 rounded-2xl transition-all outline-none text-[15px]"
+              style={{ backgroundColor: "#121A2B", color: "#F3F6FB", border: "1px solid #243146" }}
+              placeholder="Search organizational memories, threat types, or reasoning..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#64748B"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#243146"; }}
+            />
+          </div>
 
-        {memories.map((memory) => (
-          <div key={memory.id} className="border rounded-xl p-6 shadow-sm bg-white hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-semibold text-gray-900">
-                {memory.metadata.title}
-              </h2>
-              <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                {Math.round(memory.relevance_score * 100)}% Match
+          {categories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="w-4 h-4 mr-2" style={{ color: "#64748B" }} />
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors"
+                  style={
+                    cat === selectedCategory
+                      ? { backgroundColor: "rgba(6, 182, 212, 0.1)", color: "#06B6D4", border: "1px solid rgba(6, 182, 212, 0.2)" }
+                      : { backgroundColor: "#121A2B", color: "#94A3B8", border: "1px solid #243146" }
+                  }
+                >
+                  {cat}
+                </button>
+              ))}
+              {selectedCategory && (
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1"
+                  style={{ backgroundColor: "transparent", color: "#64748B", border: "1px solid transparent" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#F3F6FB"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#64748B"; }}
+                >
+                  <X className="w-3 h-3" /> Clear Filter
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* RESULTS */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <RefreshCw className="w-6 h-6 animate-spin" style={{ color: "#06B6D4" }} />
+            <p style={{ color: "#64748B" }}>Retrieving organizational memories...</p>
+          </div>
+        ) : filteredMemories.length === 0 ? (
+          <div className="rounded-2xl border p-16 text-center" style={{ backgroundColor: "#121A2B", borderColor: "#243146", borderStyle: "dashed" }}>
+            <h3 className="text-[18px] font-semibold mb-2" style={{ color: "#F3F6FB" }}>No Memories Found</h3>
+            <p className="text-[14px]" style={{ color: "#64748B" }}>
+              Try adjusting your search terms or clearing the selected category.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color: "#64748B" }}>
+                {filteredMemories.length} {filteredMemories.length === 1 ? "Result" : "Results"}
               </span>
             </div>
+            
+            {filteredMemories.map((memory) => (
+              <Link
+                key={memory.id}
+                href={`/memory/${memory.id}`}
+                className="block rounded-2xl border p-8 transition-colors group"
+                style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#64748B"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#243146"; }}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold tracking-widest uppercase mb-3" style={{ backgroundColor: "rgba(139, 92, 246, 0.1)", color: "#8B5CF6" }}>
+                      <Brain className="w-3 h-3" />
+                      {memory.threat_category || "Uncategorized"}
+                    </span>
+                    <h3 className="text-[18px] font-semibold leading-snug" style={{ color: "#F3F6FB" }}>
+                      {memory.hindsight_reasoning.length > 120
+                        ? `${memory.hindsight_reasoning.substring(0, 120)}...`
+                        : memory.hindsight_reasoning}
+                    </h3>
+                  </div>
+                  <div className="text-right shrink-0 ml-6">
+                    <div className="inline-block px-3 py-1 rounded border text-[13px] font-bold" style={{ backgroundColor: "rgba(6, 182, 212, 0.1)", color: "#06B6D4", borderColor: "rgba(6, 182, 212, 0.2)" }}>
+                      {memory.ai_confidence_score}% Strength
+                    </div>
+                  </div>
+                </div>
 
-            <p className="text-gray-600 mb-6">{memory.metadata.description}</p>
+                {memory.recommendations && memory.recommendations.length > 0 && (
+                  <div className="mt-6 pt-6" style={{ borderTop: "1px solid #243146" }}>
+                    <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: "#64748B" }}>Top Insight</p>
+                    <p className="text-[14px]" style={{ color: "#94A3B8" }}>
+                      {memory.recommendations[0]}
+                    </p>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg">
-              <div>
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Root Cause</h3>
-                <p className="text-gray-800">{memory.metadata.root_cause}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Resolution</h3>
-                <p className="text-gray-800">{memory.metadata.resolution}</p>
-              </div>
-
-              <div className="md:col-span-2">
-                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Lessons Learned</h3>
-                <p className="text-gray-800 bg-yellow-50 p-4 border border-yellow-100 rounded text-sm">
-                  {memory.metadata.lessons_learned}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex gap-4 text-sm text-gray-500">
-              <span>Severity: <strong className="capitalize text-gray-700">{memory.metadata.severity}</strong></span>
-              <span>•</span>
-              <span>Resolution Time: <strong className="text-gray-700">{memory.metadata.resolution_time_minutes} min</strong></span>
-            </div>
+                <div className="mt-6 flex items-center justify-between text-[12px]">
+                  <span style={{ color: "#64748B" }}>
+                    Learned on {new Date(memory.created_at).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center gap-1 font-medium group-hover:underline" style={{ color: "#06B6D4" }}>
+                    View Memory Detail <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </Link>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

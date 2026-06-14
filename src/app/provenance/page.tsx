@@ -2,21 +2,16 @@
 
 import { useState, useEffect } from "react";
 import {
-  GitBranch,
   Search,
   Database,
   Brain,
   Shield,
   FileText,
-  Clock,
   ArrowRight,
-  TrendingUp,
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-// Using dynamic generic types to match our backend structure
 export default function ProvenanceExplorer() {
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -27,7 +22,7 @@ export default function ProvenanceExplorer() {
 
   // Fetch top influential memories on mount
   useEffect(() => {
-    // We'll mock this fetch for the UI MVP, but it would call a real API in production
+    // Mock fetch for the UI MVP
     setTimeout(() => {
       setInfluentialMemories([
         { id: "mem-1", label: "Enabling MFA stops 99% of credential theft", category: "Credential Theft", referenceCount: 42, strengthScore: 96 },
@@ -55,27 +50,26 @@ export default function ProvenanceExplorer() {
     }
   };
 
-  const getSourceIcon = (type: string) => {
+  const getSourceTypeStyles = (type: string) => {
     switch (type) {
-      case "incident": return <AlertTriangle className="w-4 h-4 text-amber-500" />;
-      case "postmortem": return <FileText className="w-4 h-4 text-cyan-500" />;
-      case "learning_event": return <Brain className="w-4 h-4 text-violet-500" />;
-      case "memory": return <Database className="w-4 h-4 text-emerald-500" />;
-      default: return <Shield className="w-4 h-4 text-zinc-500" />;
+      case "incident": return { bg: "rgba(245, 158, 11, 0.1)", color: "#F59E0B" }; // amber
+      case "postmortem": return { bg: "rgba(6, 182, 212, 0.1)", color: "#06B6D4" }; // cyan
+      case "learning_event": return { bg: "rgba(139, 92, 246, 0.1)", color: "#8B5CF6" }; // violet
+      case "memory": return { bg: "rgba(16, 185, 129, 0.1)", color: "#10B981" }; // emerald
+      default: return { bg: "rgba(148, 163, 184, 0.1)", color: "#94A3B8" }; // slate
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 sm:p-10 text-zinc-200">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen p-8 sm:p-10" style={{ backgroundColor: "#0B1220" }}>
+      <div className="max-w-[1200px] mx-auto space-y-12">
         
         {/* HEADER */}
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <GitBranch className="w-8 h-8 text-emerald-400" />
+          <h1 className="text-[32px] font-bold tracking-tight" style={{ color: "#F3F6FB" }}>
             Memory Provenance Explorer
           </h1>
-          <p className="text-zinc-400 mt-2 max-w-2xl">
+          <p className="mt-2 text-[15px]" style={{ color: "#64748B", maxWidth: "600px" }}>
             Trace every AI recommendation, threat prediction, and executive insight back to the historical incidents, postmortems, and learning events that produced it.
           </p>
         </div>
@@ -83,19 +77,30 @@ export default function ProvenanceExplorer() {
         {/* SEARCH BAR */}
         <form onSubmit={handleSearch} className="relative max-w-3xl">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-zinc-500" />
+            <Search className="h-5 w-5" style={{ color: "#64748B" }} />
           </div>
           <input
             type="text"
-            className="block w-full pl-11 pr-3 py-4 border border-zinc-800 rounded-2xl bg-zinc-900/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all shadow-lg"
-            placeholder="E.g., Why did SentinelMind recommend MFA for credential theft?"
+            className="block w-full pl-12 pr-4 py-4 rounded-xl transition-all"
+            style={{ 
+              backgroundColor: "#121A2B", 
+              border: "1px solid #243146", 
+              color: "#F3F6FB",
+              outline: "none"
+            }}
+            placeholder="Search organizational memory..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#64748B"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "#243146"; }}
           />
           <button
             type="submit"
             disabled={isSearching || !query}
-            className="absolute inset-y-2 right-2 px-6 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+            className="absolute inset-y-2 right-2 px-6 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+            style={{ backgroundColor: "#182235", color: "#F3F6FB", border: "1px solid #243146" }}
+            onMouseEnter={(e) => { if (!isSearching && query) e.currentTarget.style.backgroundColor = "#243146"; }}
+            onMouseLeave={(e) => { if (!isSearching && query) e.currentTarget.style.backgroundColor = "#182235"; }}
           >
             {isSearching ? "Searching..." : "Trace"}
           </button>
@@ -108,42 +113,53 @@ export default function ProvenanceExplorer() {
             
             {/* Search Results */}
             {searchResults.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Database className="w-5 h-5 text-emerald-400" />
+              <div className="space-y-6">
+                <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#64748B" }}>
                   Relevant Memories Found ({searchResults.length})
                 </h2>
-                <div className="grid grid-cols-1 gap-4">
-                  {searchResults.map((res, i) => (
-                    <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          {getSourceIcon(res.type)}
-                          <span className="text-sm font-medium text-zinc-300 capitalize">{res.type.replace('_', ' ')}</span>
+                <div className="space-y-4">
+                  {searchResults.map((res, i) => {
+                    const style = getSourceTypeStyles(res.type);
+                    return (
+                      <div 
+                        key={i} 
+                        className="rounded-xl border p-6 transition-colors"
+                        style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#64748B"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#243146"; }}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <span 
+                            className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
+                            style={{ backgroundColor: style.bg, color: style.color }}
+                          >
+                            {res.type.replace('_', ' ')}
+                          </span>
+                          <span className="text-[12px] font-semibold" style={{ color: "#94A3B8" }}>
+                            {Math.round(res.relevance * 100)}% Match
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full">
-                          <TrendingUp className="w-3 h-3" />
-                          {Math.round(res.relevance * 100)}% Match
-                        </div>
+                        <p className="text-[14px] leading-relaxed" style={{ color: "#F3F6FB" }}>
+                          "{res.context}"
+                        </p>
+                        <button className="mt-5 text-[13px] font-medium flex items-center gap-1.5 transition-colors" style={{ color: "#94A3B8" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = "#F3F6FB"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = "#94A3B8"; }}
+                        >
+                          View Reasoning Chain <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <p className="text-zinc-200 text-sm leading-relaxed">
-                        "{res.context}"
-                      </p>
-                      <button className="mt-4 text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
-                        View Reasoning Chain <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Placeholder / Empty State */}
+            {/* Empty State */}
             {searchResults.length === 0 && !isSearching && (
-              <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-12 text-center border-dashed">
-                <GitBranch className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-zinc-300 mb-2">Explore the Reasoning Chain</h3>
-                <p className="text-zinc-500 max-w-md mx-auto">
+              <div className="rounded-xl border p-12 text-center" style={{ backgroundColor: "#121A2B", borderColor: "#243146", borderStyle: "dashed" }}>
+                <h3 className="text-[16px] font-semibold mb-2" style={{ color: "#F3F6FB" }}>Explore the Reasoning Chain</h3>
+                <p className="text-[14px] max-w-md mx-auto" style={{ color: "#64748B" }}>
                   Search for a topic or recommendation above to see exactly which historical events, postmortems, and learning memories influenced SentinelMind's decisions.
                 </p>
               </div>
@@ -154,28 +170,31 @@ export default function ProvenanceExplorer() {
           <div className="space-y-8">
             
             {/* Top Influential Memories */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Brain className="w-5 h-5 text-violet-400" />
-                <h2 className="text-lg font-semibold">Top Influential Memories</h2>
-              </div>
+            <div className="rounded-xl border p-8" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+              <h2 className="text-xs font-semibold uppercase tracking-widest mb-6" style={{ color: "#64748B" }}>
+                Top Influential Memories
+              </h2>
               
               {loadingMemories ? (
-                <div className="animate-pulse space-y-4">
-                  {[1, 2, 3].map(i => <div key={i} className="h-16 bg-zinc-800/50 rounded-xl" />)}
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: "#182235" }} />)}
                 </div>
               ) : (
                 <div className="space-y-4">
                   {influentialMemories.map((mem) => (
                     <div key={mem.id} className="group relative">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-zinc-400">{mem.category}</span>
-                        <span className="text-emerald-400 font-medium">{mem.strengthScore}% Strength</span>
+                      <div className="flex justify-between text-[11px] font-semibold tracking-wide uppercase mb-2">
+                        <span style={{ color: "#64748B" }}>{mem.category}</span>
+                        <span style={{ color: "#06B6D4" }}>{mem.strengthScore} Strength</span>
                       </div>
-                      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-300 group-hover:border-zinc-700 transition-colors cursor-pointer">
+                      <div 
+                        className="rounded-xl border p-4 text-[13px] transition-colors cursor-pointer"
+                        style={{ backgroundColor: "#182235", borderColor: "#243146", color: "#F3F6FB" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#06B6D4"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#243146"; }}
+                      >
                         {mem.label}
-                        <div className="mt-2 text-xs text-zinc-500 flex items-center gap-1">
-                          <Database className="w-3 h-3" />
+                        <div className="mt-3 text-[11px] font-medium tracking-wide uppercase" style={{ color: "#64748B" }}>
                           Referenced {mem.referenceCount} times
                         </div>
                       </div>
@@ -185,22 +204,22 @@ export default function ProvenanceExplorer() {
               )}
             </div>
 
-            {/* Quick Filters */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4">Evidence Sources</h2>
+            {/* Quick Filters (No Icons) */}
+            <div className="rounded-xl border p-8" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+              <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#64748B" }}>
+                Evidence Sources
+              </h2>
               <div className="space-y-2">
-                {[
-                  { label: "Historical Incidents", icon: AlertTriangle, color: "text-amber-500" },
-                  { label: "Postmortems", icon: FileText, color: "text-cyan-500" },
-                  { label: "Learning Events", icon: Brain, color: "text-violet-500" },
-                  { label: "Hindsight Memories", icon: Database, color: "text-emerald-500" }
-                ].map((src, i) => (
-                  <button key={i} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-zinc-800/50 transition-colors text-sm text-zinc-300">
-                    <div className="flex items-center gap-3">
-                      <src.icon className={cn("w-4 h-4", src.color)} />
-                      {src.label}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-zinc-600" />
+                {["Historical Incidents", "Postmortems", "Learning Events", "Hindsight Memories"].map((label, i) => (
+                  <button 
+                    key={i} 
+                    className="w-full flex items-center justify-between p-3 rounded-lg transition-colors text-[13px] font-medium"
+                    style={{ color: "#F3F6FB" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#182235"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                  >
+                    {label}
+                    <ChevronRight className="w-4 h-4" style={{ color: "#64748B" }} />
                   </button>
                 ))}
               </div>

@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope } from "next/font/google";
 import Link from "next/link";
-import { Shield, Database, LayoutDashboard, Sparkles, Brain, FileText, Radar, GitBranch, BookOpen } from "lucide-react";
+import { Shield } from "lucide-react";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "Security Memory Agent",
-  description: "AI-powered security incident and memory management",
+  title: "SentinelMind — Security Intelligence Platform",
+  description: "Memory-native security intelligence platform powered by Hindsight",
 };
+
+const NAV_LINKS = [
+  { href: "/", label: "Dashboard" },
+  { href: "/incidents", label: "Incidents" },
+  { href: "/assistant", label: "Copilot" },
+  { href: "/intelligence", label: "Intelligence" },
+  { href: "/memory-graph", label: "Memory Graph" },
+  { href: "/provenance", label: "Provenance" },
+  { href: "/runbooks", label: "Runbooks" },
+];
 
 export default function RootLayout({
   children,
@@ -27,51 +33,44 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${manrope.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <nav className="border-b border-border bg-card">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex">
-                <div className="flex-shrink-0 flex items-center gap-2">
-                  <Shield className="w-6 h-6 text-primary" />
-                  <span className="font-bold text-lg hidden sm:block">SOC OS</span>
+      <body
+        className="min-h-full flex flex-col"
+        style={{ backgroundColor: "#0B1220", color: "#F3F6FB" }}
+      >
+        <nav
+          className="border-b"
+          style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}
+        >
+          <div className="max-w-[1400px] mx-auto px-6">
+            <div className="flex justify-between h-14">
+              <div className="flex items-center">
+                <Link href="/" className="flex items-center gap-2.5 mr-10">
+                  <Shield className="w-5 h-5 text-cyan-500" />
+                  <span className="font-bold text-[15px] tracking-tight" style={{ color: "#F3F6FB" }}>
+                    SentinelMind
+                  </span>
+                </Link>
+                <div className="hidden md:flex items-center gap-1">
+                  {NAV_LINKS.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-[#94A3B8] hover:bg-[#182235] hover:text-[#F3F6FB]"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
                 </div>
-                <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                  <Link href="/" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Link>
-                  <Link href="/incidents" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <Database className="w-4 h-4 mr-2" />
-                    Incidents
-                  </Link>
-                  <Link href="/assistant" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <Sparkles className="w-4 h-4 mr-2 text-cyan-500" />
-                    Copilot
-                  </Link>
-                  <Link href="/learning" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <Brain className="w-4 h-4 mr-2 text-violet-500" />
-                    Learning
-                  </Link>
-                  <Link href="/intelligence" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <Radar className="w-4 h-4 mr-2 text-rose-500" />
-                    Intelligence
-                  </Link>
-                  <Link href="/provenance" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <GitBranch className="w-4 h-4 mr-2 text-emerald-500" />
-                    Provenance
-                  </Link>
-                  <Link href="/runbooks" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <BookOpen className="w-4 h-4 mr-2 text-amber-500" />
-                    Runbooks
-                  </Link>
-                  <Link href="/reports" className="border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                    <FileText className="w-4 h-4 mr-2 text-amber-500" />
-                    Reports
-                  </Link>
-                </div>
+              </div>
+              <div className="flex items-center">
+                <span className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: "rgba(22, 163, 74, 0.1)", color: "#16A34A", border: "1px solid rgba(22, 163, 74, 0.2)" }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "#16A34A" }} />
+                  Online
+                </span>
               </div>
             </div>
           </div>

@@ -2,19 +2,10 @@
 
 import { useState, useEffect } from "react";
 import {
-  BookOpen,
-  Shield,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Zap,
-  ChevronRight,
-  BarChart3,
-  XCircle,
-  RefreshCw,
   Minus,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -101,46 +92,48 @@ export default function RunbooksPage() {
   };
 
   const getTrendIcon = (trend: string) => {
-    if (trend === "Improving") return <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />;
-    if (trend === "Declining") return <TrendingDown className="w-3.5 h-3.5 text-red-400" />;
-    return <Minus className="w-3.5 h-3.5 text-zinc-500" />;
+    if (trend === "Improving") return <TrendingUp className="w-3.5 h-3.5" style={{ color: "#16A34A" }} />;
+    if (trend === "Declining") return <TrendingDown className="w-3.5 h-3.5" style={{ color: "#DC2626" }} />;
+    return <Minus className="w-3.5 h-3.5" style={{ color: "#64748B" }} />;
   };
 
   const getConfidenceColor = (score: number) => {
-    if (score >= 80) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-    if (score >= 50) return "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    return "text-red-400 bg-red-500/10 border-red-500/20";
+    if (score >= 80) return { text: "#16A34A", bg: "rgba(22, 163, 74, 0.1)", border: "rgba(22, 163, 74, 0.2)" };
+    if (score >= 50) return { text: "#F59E0B", bg: "rgba(245, 158, 11, 0.1)", border: "rgba(245, 158, 11, 0.2)" };
+    return { text: "#DC2626", bg: "rgba(220, 38, 38, 0.1)", border: "rgba(220, 38, 38, 0.2)" };
   };
 
   const getSuccessColor = (rate: number) => {
-    if (rate >= 80) return "bg-emerald-500";
-    if (rate >= 60) return "bg-amber-500";
-    return "bg-red-500";
+    if (rate >= 80) return "#16A34A";
+    if (rate >= 60) return "#F59E0B";
+    return "#DC2626";
   };
 
   const rb = selectedRunbook?.runbook;
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 sm:p-10 text-zinc-200">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen p-8 sm:p-10" style={{ backgroundColor: "#0B1220" }}>
+      <div className="max-w-[1400px] mx-auto space-y-12">
 
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <BookOpen className="w-8 h-8 text-amber-400" />
+            <h1 className="text-[32px] font-bold tracking-tight" style={{ color: "#F3F6FB" }}>
               Adaptive Runbook Intelligence
             </h1>
-            <p className="text-zinc-400 mt-2 max-w-2xl">
+            <p className="mt-2 text-[15px]" style={{ color: "#64748B", maxWidth: "600px" }}>
               Self-evolving security runbooks powered by organizational memory. Every step is ranked by real-world effectiveness from historical incidents.
             </p>
           </div>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="shrink-0 bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl font-medium text-sm hover:from-amber-400 hover:to-orange-500 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 flex items-center gap-2"
+            className="shrink-0 px-6 py-3 rounded-lg font-semibold text-[13px] transition-colors disabled:opacity-50 flex items-center gap-2"
+            style={{ backgroundColor: "#182235", color: "#F3F6FB", border: "1px solid #243146" }}
+            onMouseEnter={(e) => { if (!generating) e.currentTarget.style.backgroundColor = "#243146"; }}
+            onMouseLeave={(e) => { if (!generating) e.currentTarget.style.backgroundColor = "#182235"; }}
           >
-            {generating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            {generating && <RefreshCw className="w-4 h-4 animate-spin" />}
             {generating ? "Generating..." : "Generate Adaptive Runbooks"}
           </button>
         </div>
@@ -148,19 +141,15 @@ export default function RunbooksPage() {
         {/* LOADING STATE */}
         {loading && (
           <div className="flex justify-center py-20">
-            <div className="text-center space-y-4">
-              <RefreshCw className="w-10 h-10 text-amber-500 animate-spin mx-auto" />
-              <p className="text-zinc-400">Loading adaptive runbooks...</p>
-            </div>
+            <p style={{ color: "#64748B" }}>Building Runbook Intelligence...</p>
           </div>
         )}
 
         {/* EMPTY STATE */}
         {!loading && runbooks.length === 0 && (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-16 text-center border-dashed">
-            <BookOpen className="w-14 h-14 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-zinc-300 mb-2">No Runbooks Generated Yet</h3>
-            <p className="text-zinc-500 max-w-md mx-auto mb-6">
+          <div className="rounded-xl border p-16 text-center" style={{ backgroundColor: "#121A2B", borderColor: "#243146", borderStyle: "dashed" }}>
+            <h3 className="text-[18px] font-semibold mb-2" style={{ color: "#F3F6FB" }}>No Runbooks Generated Yet</h3>
+            <p className="text-[14px] max-w-md mx-auto" style={{ color: "#64748B" }}>
               Click "Generate Adaptive Runbooks" to analyze your organizational memory and create intelligent, self-evolving security runbooks.
             </p>
           </div>
@@ -172,93 +161,96 @@ export default function RunbooksPage() {
 
             {/* LEFT: Runbook Selector */}
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-2">Threat Runbooks</h2>
-              {runbooks.map((stored) => (
-                <button
-                  key={stored.id}
-                  onClick={() => setSelectedRunbook(stored)}
-                  className={cn(
-                    "w-full text-left p-4 rounded-xl border transition-all",
-                    selectedRunbook?.id === stored.id
-                      ? "bg-zinc-800/80 border-amber-500/30 shadow-lg shadow-amber-500/5"
-                      : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-white">{stored.threat_type}</span>
-                    <span className={cn(
-                      "text-xs font-medium px-2 py-0.5 rounded-full border",
-                      getConfidenceColor(stored.confidence_score)
-                    )}>
-                      {stored.confidence_score}%
-                    </span>
-                  </div>
-                  <div className="text-xs text-zinc-500">
-                    {stored.runbook.steps?.length || 0} steps • {stored.runbook.analysisMethod}
-                  </div>
-                </button>
-              ))}
+              <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#64748B" }}>
+                Threat Runbooks
+              </h2>
+              {runbooks.map((stored) => {
+                const confColor = getConfidenceColor(stored.confidence_score);
+                const isSelected = selectedRunbook?.id === stored.id;
+                return (
+                  <button
+                    key={stored.id}
+                    onClick={() => setSelectedRunbook(stored)}
+                    className="w-full text-left p-5 rounded-xl border transition-all"
+                    style={{
+                      backgroundColor: isSelected ? "#182235" : "#121A2B",
+                      borderColor: isSelected ? "#64748B" : "#243146"
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[14px] font-semibold" style={{ color: "#F3F6FB" }}>{stored.threat_type}</span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded" style={{ backgroundColor: confColor.bg, color: confColor.text, border: `1px solid ${confColor.border}` }}>
+                        {stored.confidence_score}%
+                      </span>
+                    </div>
+                    <div className="text-[12px]" style={{ color: "#64748B" }}>
+                      {stored.runbook.steps?.length || 0} steps • {stored.runbook.analysisMethod}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* RIGHT: Selected Runbook Detail */}
             {rb && (
-              <div className="lg:col-span-3 space-y-6">
+              <div className="lg:col-span-3 space-y-8">
 
                 {/* Runbook Header */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="rounded-xl border p-8" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold text-white">{rb.threatType} Runbook</h2>
-                      <p className="text-sm text-zinc-400 mt-1">
+                      <h2 className="text-[24px] font-bold" style={{ color: "#F3F6FB" }}>{rb.threatType} Runbook</h2>
+                      <p className="text-[13px] mt-2" style={{ color: "#64748B" }}>
                         {rb.totalIncidentsAnalyzed} incidents analyzed • Generated via {rb.analysisMethod} • {new Date(rb.generatedAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className={cn(
-                      "text-center p-4 rounded-2xl border",
-                      getConfidenceColor(rb.confidenceScore)
-                    )}>
-                      <p className="text-3xl font-bold">{rb.confidenceScore}%</p>
-                      <p className="text-xs mt-1">Confidence</p>
-                    </div>
+                    {(() => {
+                      const c = getConfidenceColor(rb.confidenceScore);
+                      return (
+                        <div className="text-center p-5 rounded-xl border" style={{ backgroundColor: c.bg, borderColor: c.border }}>
+                          <p className="text-[28px] font-bold" style={{ color: c.text }}>{rb.confidenceScore}%</p>
+                          <p className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: c.text }}>Confidence</p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
                 {/* Step Rankings */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                  <div className="flex items-center gap-2 mb-6">
-                    <BarChart3 className="w-5 h-5 text-amber-400" />
-                    <h3 className="text-lg font-semibold">Ranked Remediation Steps</h3>
-                  </div>
-                  <div className="space-y-3">
+                <div className="rounded-xl border p-8" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest mb-6" style={{ color: "#64748B" }}>
+                    Ranked Remediation Steps
+                  </h3>
+                  <div className="space-y-4">
                     {(rb.steps || []).map((step, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 bg-zinc-950 rounded-xl border border-zinc-800/50">
-                        <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-sm font-bold text-amber-400 shrink-0">
+                      <div key={i} className="flex items-center gap-5 p-5 rounded-xl border" style={{ backgroundColor: "#182235", borderColor: "#243146" }}>
+                        <div className="text-[14px] font-bold w-6 text-center" style={{ color: "#94A3B8" }}>
                           {step.rank || i + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-white text-sm">{step.name}</span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-[14px]" style={{ color: "#F3F6FB" }}>{step.name}</span>
                             {getTrendIcon(step.trend)}
                           </div>
                           {/* Success bar */}
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#243146" }}>
                               <div
-                                className={cn("h-full rounded-full transition-all", getSuccessColor(step.successRate))}
-                                style={{ width: `${step.successRate}%` }}
+                                className="h-full rounded-full transition-all"
+                                style={{ width: `${step.successRate}%`, backgroundColor: getSuccessColor(step.successRate) }}
                               />
                             </div>
-                            <span className="text-xs text-zinc-400 w-12 text-right shrink-0">{step.successRate}%</span>
+                            <span className="text-[12px] font-medium w-10 text-right" style={{ color: "#64748B" }}>{step.successRate}%</span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0 space-y-1">
-                          <div className="text-xs text-zinc-500 flex items-center gap-1 justify-end">
-                            <CheckCircle className="w-3 h-3" /> {step.occurrences} uses
+                        <div className="text-right shrink-0 space-y-1.5">
+                          <div className="text-[12px]" style={{ color: "#64748B" }}>
+                            {step.occurrences} uses
                           </div>
                           {step.averageResolutionMinutes > 0 && (
-                            <div className="text-xs text-zinc-500 flex items-center gap-1 justify-end">
-                              <Clock className="w-3 h-3" /> {step.averageResolutionMinutes}m avg
-                            </div>
+                           <div className="text-[12px]" style={{ color: "#64748B" }}>
+                             {step.averageResolutionMinutes}m avg
+                           </div>
                           )}
                         </div>
                       </div>
@@ -268,25 +260,25 @@ export default function RunbooksPage() {
 
                 {/* Obsolete Steps */}
                 {rb.obsoleteSteps && rb.obsoleteSteps.length > 0 && (
-                  <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <AlertTriangle className="w-5 h-5 text-red-400" />
-                      <h3 className="text-lg font-semibold text-red-300">Obsolete Steps Detected</h3>
-                    </div>
+                  <div className="rounded-xl border p-8" style={{ backgroundColor: "rgba(220, 38, 38, 0.05)", borderColor: "rgba(220, 38, 38, 0.2)" }}>
+                    <h3 className="text-xs font-semibold uppercase tracking-widest mb-6" style={{ color: "#DC2626" }}>
+                      Obsolete Steps Detected
+                    </h3>
                     <div className="space-y-3">
                       {rb.obsoleteSteps.map((step, i) => (
-                        <div key={i} className="flex items-center gap-4 p-4 bg-zinc-950/50 rounded-xl border border-red-500/10">
-                          <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+                        <div key={i} className="flex items-center gap-4 p-5 rounded-xl border" style={{ backgroundColor: "#182235", borderColor: "rgba(220, 38, 38, 0.1)" }}>
                           <div className="flex-1">
-                            <span className="font-medium text-zinc-200 text-sm">{step.name}</span>
-                            <p className="text-xs text-zinc-500 mt-1">{step.reason}</p>
+                            <span className="font-semibold text-[14px]" style={{ color: "#F3F6FB" }}>{step.name}</span>
+                            <p className="text-[13px] mt-1" style={{ color: "#64748B" }}>{step.reason}</p>
                           </div>
-                          <span className={cn(
-                            "text-xs font-medium px-2.5 py-1 rounded-full",
-                            step.recommendation === "Deprecate"
-                              ? "bg-red-500/20 text-red-400"
-                              : "bg-amber-500/20 text-amber-400"
-                          )}>
+                          <span 
+                            className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded"
+                            style={
+                              step.recommendation === "Deprecate"
+                                ? { backgroundColor: "rgba(220, 38, 38, 0.1)", color: "#DC2626" }
+                                : { backgroundColor: "rgba(245, 158, 11, 0.1)", color: "#F59E0B" }
+                            }
+                          >
                             {step.recommendation}
                           </span>
                         </div>
@@ -297,47 +289,44 @@ export default function RunbooksPage() {
 
                 {/* AI Recommendations */}
                 {rb.recommendations && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {rb.recommendations.newSteps?.length > 0 && (
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-                        <h4 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4" /> Suggested New Steps
+                      <div className="rounded-xl border p-6" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+                        <h4 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#16A34A" }}>
+                          Suggested New Steps
                         </h4>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {rb.recommendations.newSteps.map((s, i) => (
-                            <li key={i} className="text-xs text-zinc-400 flex items-start gap-2">
-                              <ChevronRight className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" />
-                              {s}
+                            <li key={i} className="text-[13px] leading-relaxed" style={{ color: "#94A3B8" }}>
+                              • {s}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
                     {rb.recommendations.reorderSuggestions?.length > 0 && (
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-                        <h4 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
-                          <BarChart3 className="w-4 h-4" /> Reorder Suggestions
+                      <div className="rounded-xl border p-6" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+                        <h4 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#F59E0B" }}>
+                          Reorder Suggestions
                         </h4>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {rb.recommendations.reorderSuggestions.map((s, i) => (
-                            <li key={i} className="text-xs text-zinc-400 flex items-start gap-2">
-                              <ChevronRight className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
-                              {s}
+                            <li key={i} className="text-[13px] leading-relaxed" style={{ color: "#94A3B8" }}>
+                              • {s}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
                     {rb.recommendations.riskWarnings?.length > 0 && (
-                      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-                        <h4 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4" /> Risk Warnings
+                      <div className="rounded-xl border p-6" style={{ backgroundColor: "#121A2B", borderColor: "#243146" }}>
+                        <h4 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#DC2626" }}>
+                          Risk Warnings
                         </h4>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {rb.recommendations.riskWarnings.map((s, i) => (
-                            <li key={i} className="text-xs text-zinc-400 flex items-start gap-2">
-                              <ChevronRight className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
-                              {s}
+                            <li key={i} className="text-[13px] leading-relaxed" style={{ color: "#94A3B8" }}>
+                              • {s}
                             </li>
                           ))}
                         </ul>
